@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #2c3e50; }
+        .section { margin-bottom: 30px; }
+        .response { margin-top: 10px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; white-space: pre-wrap; }
+        input, button, select { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+<h1>Teacher API Interface</h1>
+
+<div class="section">
+    <h3>Add Teacher</h3>
+    <input type="text" id="teacherName" placeholder="Name" />
+    <input type="text" id="teacherSurname" placeholder="Surname" />
+    <input type="number" id="teacherSalary" placeholder="Salary" />
+    <input type="number" id="teacherAge" placeholder="Age" />
+    <input type="number" id="teacherClassId" placeholder="Class ID" />
+    <button onclick="addTeacher()">Add Teacher</button>
+    <div id="addTeacherResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Delete Teacher</h3>
+    <input type="number" id="deleteTeacherId" placeholder="Teacher ID" />
+    <button onclick="deleteTeacher()">Delete Teacher</button>
+    <div id="deleteTeacherResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Export Teachers to CSV</h3>
+    <button onclick="exportTeachersToCsv()">Download CSV</button>
+</div>
+
+<div class="section">
+    <h3>Add Group</h3>
+    <input type="text" id="groupName" placeholder="Group Name" />
+    <input type="number" id="teacherLimit" placeholder="Teacher Limit" />
+    <button onclick="addGroup()">Add Group</button>
+    <div id="addGroupResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Delete Group</h3>
+    <input type="number" id="deleteGroupId" placeholder="Group ID" />
+    <button onclick="deleteGroup()">Delete Group</button>
+    <div id="deleteGroupResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Get All Groups</h3>
+    <button onclick="getAllGroups()">Get Groups</button>
+    <div id="getAllGroupsResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Get Teachers by Group</h3>
+    <input type="number" id="groupId" placeholder="Group ID" />
+    <button onclick="getTeachersByGroup()">Get Teachers</button>
+    <div id="getTeachersByGroupResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Get Group Fill Percentage</h3>
+    <input type="number" id="fillGroupId" placeholder="Group ID" />
+    <button onclick="getGroupFill()">Get Fill Percentage</button>
+    <div id="getGroupFillResponse" class="response"></div>
+</div>
+
+<div class="section">
+    <h3>Add Rating</h3>
+    <input type="number" id="ratingGroupId" placeholder="Group ID" />
+    <input type="number" id="ratingValue" placeholder="Rating (1-5)" />
+    <input type="text" id="ratingComment" placeholder="Comment" />
+    <button onclick="addRating()">Add Rating</button>
+    <div id="addRatingResponse" class="response"></div>
+</div>
+
+<script>
+    const apiBase = "http://localhost:8080/api";
+
+    async function addTeacher() {
+        const data = {
+            name: document.getElementById("teacherName").value,
+            surname: document.getElementById("teacherSurname").value,
+            salary: parseFloat(document.getElementById("teacherSalary").value),
+            age: parseInt(document.getElementById("teacherAge").value),
+            teacherClass: { id: parseInt(document.getElementById("teacherClassId").value) }
+        };
+
+        try {
+            const response = await fetch(`${apiBase}/teacher`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                // Handle non-JSON error responses
+                const errorText = await response.text();
+                const errorMessage = `Error ${response.status}: ${response.statusText} - ${errorText}`;
+                document.getElementById("addTeacherResponse").innerHTML = errorMessage;
+                return;
+            }
+
+            // Handle successful response
+            const responseData = await response.json();
+            document.getElementById("addTeacherResponse").innerHTML = JSON.stringify(responseData, null, 2);
+
+        } catch (error) {
+            // Handle network or unexpected errors
+            document.getElementById("addTeacherResponse").innerHTML = `Error: ${error.message}`;
+        }
+    }
+
+
+    async function deleteTeacher() {
+        const id = document.getElementById("deleteTeacherId").value;
+        if (!id) {
+            document.getElementById("deleteTeacherResponse").innerHTML = "Error: Please provide a valid Teacher ID.";
+            return;
+        }
+
+        await fetch(`${apiBase}/teacher/${id}`, { method: "DELETE" })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`${response.status} - ${response.statusText}: ${text}`);
+                    });
+                }
+                return `Teacher ${id} deleted.`;
+            })
+            .then(message => document.getElementById("deleteTeacherResponse").innerHTML = message)
+            .catch(err => document.getElementById("deleteTeacherResponse").innerHTML = `Error: ${err.message}`);
+    }
+
+
+
+
+    function exportTeachersToCsv() {
+        window.location.href = `${apiBase}/teacher/csv`;
+    }
+
+    async function addGroup() {
+        const data = {
+            groupName: document.getElementById("groupName").value,
+            teacherLimit: parseInt(document.getElementById("teacherLimit").value)
+        };
+
+        await fetch(`${apiBase}/group`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        }).then(response => response.json())
+            .then(data => document.getElementById("addGroupResponse").innerHTML = JSON.stringify(data, null, 2))
+            .catch(err => document.getElementById("addGroupResponse").innerHTML = `Error: ${err.message}`);
+    }
+
+    async function deleteGroup() {
+        const id = document.getElementById("deleteGroupId").value;
+        if (!id) {
+            document.getElementById("deleteGroupResponse").innerHTML = "Error: Please provide a valid Group ID.";
+            return;
+        }
+
+        await fetch(`${apiBase}/group/${id}`, { method: "DELETE" })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`${response.status} - ${response.statusText}: ${text}`);
+                    });
+                }
+                return `Group ${id} deleted successfully.`;
+            })
+            .then(message => document.getElementById("deleteGroupResponse").innerHTML = message)
+            .catch(err => document.getElementById("deleteGroupResponse").innerHTML = `Error: ${err.message}`);
+    }
+
+
+    async function getAllGroups() {
+        try {
+            const response = await fetch(`${apiBase}/group`);
+
+            if (!response.ok) {
+                // Handle HTTP errors
+                const errorText = await response.text();
+                const errorMessage = `Error ${response.status}: ${response.statusText} - ${errorText}`;
+                document.getElementById("getAllGroupsResponse").innerHTML = errorMessage;
+                return;
+            }
+
+            const data = await response.json();
+
+            if (Array.isArray(data) && data.length === 0) {
+                // Handle empty response
+                document.getElementById("getAllGroupsResponse").innerHTML = "No groups found for the given ID.";
+            } else {
+                // Display the returned data
+                document.getElementById("getAllGroupsResponse").innerHTML = JSON.stringify(data, null, 2);
+            }
+        } catch (error) {
+            // Handle network or unexpected errors
+            document.getElementById("getAllGroupsResponse").innerHTML = `Error: ${error.message}`;
+        }
+    }
+
+
+    async function getTeachersByGroup() {
+        const id = document.getElementById("groupId").value;
+        if (!id) {
+            document.getElementById("getTeachersByGroupResponse").innerHTML = "Error: Please provide a valid Group ID.";
+            return;
+        }
+
+        await fetch(`${apiBase}/group/${id}/teacher`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        if (response.status === 404) {
+                            throw new Error(`Error ${response.status}: No group found with ID ${id}.`);
+                        }
+                        throw new Error(`${response.status} - ${response.statusText}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById("getTeachersByGroupResponse").innerHTML = JSON.stringify(data, null, 2);
+            })
+            .catch(err => document.getElementById("getTeachersByGroupResponse").innerHTML = `Error: ${err.message}`);
+    }
+
+
+    async function getGroupFill() {
+        const id = document.getElementById("fillGroupId").value;
+        if (!id) {
+            document.getElementById("getGroupFillResponse").innerHTML = "Error: Please provide a valid Group ID.";
+            return;
+        }
+
+        await fetch(`${apiBase}/group/${id}/fill`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`${response.status} - ${response.statusText}: ${text}`);
+                    });
+                }
+                return response.text();
+            })
+            .then(data => document.getElementById("getGroupFillResponse").innerHTML = data)
+            .catch(err => document.getElementById("getGroupFillResponse").innerHTML = `Error: ${err.message}`);
+    }
+
+    async function addRating() {
+        const groupId = document.getElementById("ratingGroupId").value;
+        const ratingValue = document.getElementById("ratingValue").value;
+        const ratingComment = document.getElementById("ratingComment").value;
+
+        if (!groupId || !ratingValue) {
+            document.getElementById("addRatingResponse").innerHTML = "Error: Please provide a valid Group ID and Rating.";
+            return;
+        }
+
+        const data = {
+            teacherClass: { id: parseInt(groupId) },
+            rating: parseInt(ratingValue),
+            comment: ratingComment
+        };
+
+        try {
+            const response = await fetch(`${apiBase}/rating`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            if (response.status === 404) {
+                const errorMessage = `Error 404: No group found with ID ${groupId}.`;
+                document.getElementById("addRatingResponse").innerHTML = errorMessage;
+            } else if (!response.ok) {
+                const errorText = await response.text();
+                const errorMessage = `Error ${response.status}: ${response.statusText} - ${errorText}`;
+                document.getElementById("addRatingResponse").innerHTML = errorMessage;
+            } else {
+                // Handle success
+                const responseData = await response.json();
+                document.getElementById("addRatingResponse").innerHTML = JSON.stringify(responseData, null, 2);
+            }
+        } catch (error) {
+            // Handle network or other unexpected errors
+            document.getElementById("addRatingResponse").innerHTML = `Error: ${error.message}`;
+        }
+    }
+
+
+
+
+</script>
+</body>
+</html>
