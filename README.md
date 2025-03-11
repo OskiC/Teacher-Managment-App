@@ -4,7 +4,7 @@ A simple Spring application to manage Teachers
 
 ### When running first time(or after changes)
 ```shell
-docker-compose up --build
+   docker-compose up --build
 ```
 If tests fails the app won't start
 
